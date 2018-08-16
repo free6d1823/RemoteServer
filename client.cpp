@@ -2,31 +2,33 @@
 #include <unistd.h>
 #include <memory.h>
 #include <stdlib.h>
+#include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <time.h>
+
+#include <errno.h>
+#include <arpa/inet.h>
 
 #include "common.h"
 int ConnectServer(char* ip, int port)
 {
     printf("Connecting %s:%d...\n", ip, port);
     struct sockaddr_in serv_addr;
-    struct hostent *server;
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
        perror("ERROR opening socket");
        return sockfd;
     }
-    server = gethostbyname(ip);
 
-    if (server == NULL) {
-       fprintf(stderr,"ERROR, no host %s\n", ip);
-       return -1;
-    }
     memset((char *) &serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    memcpy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
     serv_addr.sin_port = htons(port);
+    if(inet_pton(AF_INET, ip, &serv_addr.sin_addr)<=0)
+    {
+        printf("\n inet_pton error occured\n");
+        return 1;
+    }
 
     /* Now connect to the server */
     if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
